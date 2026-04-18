@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Recipe Reader</title>
+
+  <!-- PWA: makes "Add to Home Screen" work on iOS and Android -->
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="theme-color" content="#a8401e" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Recipes" />
+  <link rel="apple-touch-icon" href="/icon.png" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f6f3ef;
+      --surface: #ffffff;
+      --surface2: #faf8f5;
+      --border: #e9e3d8;
+      --border-light: #f0ebe2;
+      --text: #1e1a16;
+      --text-muted: #7a7060;
+      --text-light: #a89e90;
+      --accent: #a8401e;
+      --accent-hover: #8c3416;
+      --accent-light: #fcf0eb;
+      --accent-mid: #f2d4c8;
+      --shadow-sm: 0 1px 4px rgba(0,0,0,0.06);
+      --shadow: 0 4px 20px rgba(0,0,0,0.08);
+      --shadow-lg: 0 8px 40px rgba(0,0,0,0.12);
+      --radius: 16px;
+      --radius-sm: 8px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--text);
+      padding: 0 28px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      height: 58px;
+    }
+
+    .logo { font-size: 1.3rem; }
+
+    header h1 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.01em;
+    }
+
+    header p {
+      font-size: 0.78rem;
+      color: rgba(255,255,255,0.5);
+    }
+
+    /* ── Container ── */
+    .container {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 36px 20px 60px;
+    }
+
+    /* ── URL card ── */
+    .url-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      box-shadow: var(--shadow);
+      margin-bottom: 36px;
+    }
+
+    .url-card label {
+      display: block;
+      font-size: 0.72rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: var(--text-light);
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    .url-row { display: flex; gap: 10px; }
+
+    .url-row input {
+      flex: 1;
+      padding: 13px 18px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 0.95rem;
+      background: var(--surface2);
+      color: var(--text);
+      transition: border-color 0.15s, box-shadow 0.15s;
+      outline: none;
+    }
+
+    .url-row input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-light);
+    }
+
+    .url-row input::placeholder { color: #c8bfb5; }
+
+    button.fetch-btn {
+      padding: 13px 24px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 0.92rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+      white-space: nowrap;
+      letter-spacing: 0.01em;
+      box-shadow: 0 2px 8px rgba(168,64,30,0.3);
+    }
+
+    button.fetch-btn:hover {
+      background: var(--accent-hover);
+      box-shadow: 0 4px 14px rgba(168,64,30,0.35);
+    }
+    button.fetch-btn:active { transform: scale(0.98); }
+    button.fetch-btn:disabled { background: #ccc; box-shadow: none; cursor: not-allowed; }
+
+    .hint { margin-top: 12px; font-size: 0.78rem; color: var(--text-light); }
+
+    /* ── Error ── */
+    .error-box {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      color: #991b1b;
+      font-size: 0.875rem;
+      margin-top: 14px;
+      white-space: pre-wrap;
+      display: none;
+    }
+
+    /* ── Skeleton ── */
+    .skeleton { display: none; margin-bottom: 36px; }
+    .skeleton-line {
+      height: 14px;
+      background: linear-gradient(90deg, #e8e2d9 25%, #f5f2ee 50%, #e8e2d9 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 6px;
+      margin-bottom: 12px;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    #recipe-output { display: none; }
+
+    /* ── Hero ── */
+    .recipe-hero {
+      background: var(--surface);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+      margin-bottom: 24px;
+      position: relative;
+    }
+
+    .recipe-hero-image-wrap {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .recipe-hero img {
+      width: 100%;
+      height: 380px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .recipe-hero-image-wrap::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to bottom, transparent 40%, rgba(20,15,10,0.65) 100%);
+      pointer-events: none;
+    }
+
+    .recipe-hero-body {
+      padding: 30px 36px 32px;
+    }
+
+    .recipe-hero-body h2 {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-size: 2.1rem;
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    .recipe-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+    }
+
+    .meta-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      padding: 5px 14px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .meta-tag b {
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .recipe-description {
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      line-height: 1.75;
+      max-width: 640px;
+    }
+
+    /* ── Controls ── */
+    .controls-bar {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 24px;
+      box-shadow: var(--shadow-sm);
+      margin-bottom: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .controls-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-light);
+      margin-bottom: 6px;
+    }
+
+    .stepper {
+      display: inline-flex;
+      align-items: center;
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: 100px;
+      overflow: hidden;
+    }
+
+    .stepper button {
+      width: 36px;
+      height: 36px;
+      border: none;
+      background: transparent;
+      font-size: 1.15rem;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-weight: 500;
+      transition: color 0.1s, background 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .stepper button:hover { color: var(--accent); background: var(--accent-light); }
+
+    .stepper span {
+      min-width: 40px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--text);
+    }
+
+    .unit-toggle {
+      display: inline-flex;
+      background: var(--surface2);
+      border: 1.5px solid var(--border);
+      border-radius: 100px;
+      padding: 3px;
+      gap: 2px;
+    }
+
+    .unit-toggle button {
+      padding: 6px 16px;
+      border: none;
+      background: transparent;
+      border-radius: 100px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.15s;
+    }
+
+    .unit-toggle button.active {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 2px 6px rgba(168,64,30,0.3);
+    }
+
+    /* ── Recipe grid ── */
+    .recipe-grid {
+      display: grid;
+      grid-template-columns: 290px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 720px) {
+      .recipe-grid { grid-template-columns: 1fr; }
+      .recipe-hero-body { padding: 22px; }
+      .recipe-hero-body h2 { font-size: 1.6rem; }
+      .recipe-hero img { height: 240px; }
+      .controls-bar { gap: 16px; }
+      .container { padding: 24px 16px 48px; }
+    }
+
+    /* ── Cards ── */
+    .ingredients-card, .instructions-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 22px;
+      padding-bottom: 16px;
+      border-bottom: 1.5px solid var(--border-light);
+    }
+
+    .card-header-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--accent-light);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      flex-shrink: 0;
+    }
+
+    .card-title {
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+    }
+
+    /* ── Ingredients ── */
+    .ingredient-list { list-style: none; }
+
+    .ingredient-list li {
+      display: flex;
+      align-items: baseline;
+      gap: 0;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--border-light);
+      font-size: 0.9rem;
+    }
+
+    .ingredient-list li:last-child { border-bottom: none; }
+
+    .ing-qty {
+      font-weight: 700;
+      color: var(--accent);
+      font-size: 0.875rem;
+      min-width: 80px;
+      flex-shrink: 0;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .ing-name { color: var(--text); line-height: 1.5; }
+
+    /* ── Instructions ── */
+    .instructions-list { list-style: none; }
+
+    .instructions-list li {
+      padding: 20px 0;
+      border-bottom: 1px solid var(--border-light);
+      display: flex;
+      gap: 18px;
+      align-items: flex-start;
+    }
+
+    .instructions-list li:last-child { border-bottom: none; padding-bottom: 0; }
+
+    .step-num {
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.7rem;
+      font-weight: 800;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+      letter-spacing: 0.02em;
+      box-shadow: 0 2px 6px rgba(168,64,30,0.3);
+    }
+
+    .step-text {
+      font-size: 0.93rem;
+      line-height: 1.8;
+      color: var(--text);
+    }
+
+    .source-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 24px;
+      font-size: 0.78rem;
+      color: var(--text-light);
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+    .source-link:hover { color: var(--accent); }
+
+    /* ── Ingredient badge in steps ── */
+    .ing-ref-qty {
+      display: inline-block;
+      background: var(--accent-light);
+      color: var(--accent);
+      border: 1px solid var(--accent-mid);
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 1px 8px;
+      border-radius: 100px;
+      margin-left: 2px;
+      vertical-align: middle;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ── Server status ── */
+    .server-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      padding: 9px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .server-status.online { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; }
+    .server-status.offline { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .online .status-dot { background: #16a34a; }
+    .offline .status-dot { background: #d97706; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🍳</div>
+  <div>
+    <h1>Recipe Reader</h1>
+    <p>Paste any recipe URL to get a clean, scalable view</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="url-card">
+    <label>Recipe URL</label>
+    <div class="url-row">
+      <input type="url" id="url-input" placeholder="https://www.allrecipes.com/recipe/..." />
+      <button class="fetch-btn" id="fetch-btn" onclick="fetchRecipe()">Get Recipe</button>
+    </div>
+    <div class="server-status" id="server-status" style="display:none;"></div>
+    <p class="hint" id="hint-text">Checking for local server…</p>
+    <div class="error-box" id="error-box"></div>
+  </div>
+
+  <div class="skeleton" id="skeleton">
+    <div class="skeleton-line" style="width:60%; height:28px; margin-bottom:16px;"></div>
+    <div class="skeleton-line" style="width:40%;"></div>
+    <div class="skeleton-line" style="width:90%; margin-top:24px;"></div>
+    <div class="skeleton-line" style="width:85%;"></div>
+    <div class="skeleton-line" style="width:75%;"></div>
+  </div>
+
+  <div id="recipe-output">
+
+    <div class="recipe-hero">
+      <div class="recipe-hero-image-wrap" id="recipe-img-wrap" style="display:none;">
+        <img id="recipe-img" src="" alt="" />
+      </div>
+      <div class="recipe-hero-body">
+        <h2 id="recipe-name"></h2>
+        <div class="recipe-meta" id="recipe-meta"></div>
+        <p class="recipe-description" id="recipe-desc"></p>
+      </div>
+    </div>
+
+    <div class="controls-bar">
+      <div>
+        <div class="controls-label">Servings</div>
+        <div class="stepper">
+          <button onclick="changeServings(-1)">−</button>
+          <span id="servings-display">4</span>
+          <button onclick="changeServings(1)">+</button>
+        </div>
+      </div>
+      <div>
+        <div class="controls-label">Units</div>
+        <div class="unit-toggle">
+          <button id="btn-imperial" onclick="setUnits('imperial')">Imperial</button>
+          <button id="btn-metric" class="active" onclick="setUnits('metric')">Metric</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="recipe-grid">
+      <div class="ingredients-card">
+        <div class="card-header">
+          <div class="card-header-icon">🧂</div>
+          <div class="card-title">Ingredients</div>
+        </div>
+        <ul class="ingredient-list" id="ingredients-list"></ul>
+      </div>
+      <div class="instructions-card">
+        <div class="card-header">
+          <div class="card-header-icon">👨‍🍳</div>
+          <div class="card-title">Method</div>
+        </div>
+        <ol class="instructions-list" id="instructions-list"></ol>
+        <a class="source-link" id="source-link" href="#" target="_blank" rel="noopener">
+          ↗ View original recipe
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+let state = {
+  recipe: null,
+  originalServings: 1,
+  currentServings: 1,
+  units: 'imperial', // 'imperial' | 'metric'
+};
+
+// ─── Unit conversion tables ──────────────────────────────────────────────────
+const VOLUME_TO_ML = {
+  tsp: 4.92892,  teaspoon: 4.92892,  teaspoons: 4.92892,
+  tbsp: 14.7868, tablespoon: 14.7868, tablespoons: 14.7868,
+  'fl oz': 29.5735, 'fluid ounce': 29.5735, 'fluid ounces': 29.5735,
+  cup: 236.588,  cups: 236.588,
+  pint: 473.176, pints: 473.176, pt: 473.176,
+  quart: 946.353, quarts: 946.353, qt: 946.353,
+  gallon: 3785.41, gallons: 3785.41, gal: 3785.41,
+  ml: 1, milliliter: 1, milliliters: 1, millilitre: 1, millilitres: 1,
+  l: 1000, liter: 1000, liters: 1000, litre: 1000, litres: 1000,
+  cl: 10, dl: 100,
+};
+
+const WEIGHT_TO_G = {
+  oz: 28.3495, ounce: 28.3495, ounces: 28.3495,
+  lb: 453.592, lbs: 453.592, pound: 453.592, pounds: 453.592,
+  g: 1, gram: 1, grams: 1,
+  kg: 1000, kilogram: 1000, kilograms: 1000,
+  mg: 0.001, milligram: 0.001, milligrams: 0.001,
+};
+
+const IMPERIAL_VOLUME = new Set(['tsp','teaspoon','teaspoons','tbsp','tablespoon','tablespoons','fl oz','fluid ounce','fluid ounces','cup','cups','pint','pints','pt','quart','quarts','qt','gallon','gallons','gal']);
+const METRIC_VOLUME = new Set(['ml','milliliter','milliliters','millilitre','millilitres','l','liter','liters','litre','litres','cl','dl']);
+const IMPERIAL_WEIGHT = new Set(['oz','ounce','ounces','lb','lbs','pound','pounds']);
+const METRIC_WEIGHT = new Set(['g','gram','grams','kg','kilogram','kilograms','mg','milligram','milligrams']);
+
+// ─── Ingredient parsing ──────────────────────────────────────────────────────
+// Matches: optional qty (int/decimal/fraction/mixed) + optional unit + rest
+const FRACTION_MAP = { '½':'1/2','⅓':'1/3','⅔':'2/3','¼':'1/4','¾':'3/4','⅛':'1/8','⅜':'3/8','⅝':'5/8','⅞':'7/8','⅙':'1/6','⅚':'5/6','⅕':'1/5','⅖':'2/5','⅗':'3/5','⅘':'4/5' };
+
+function normalizeFractions(str) {
+  return str.replace(/[½⅓⅔¼¾⅛⅜⅝⅞⅙⅚⅕⅖⅗⅘]/g, ch => FRACTION_MAP[ch] || ch);
+}
+
+function parseFraction(str) {
+  str = str.trim();
+  if (!str) return null;
+  if (str.includes('/')) {
+    const [n, d] = str.split('/');
+    return parseFloat(n) / parseFloat(d);
+  }
+  return parseFloat(str);
+}
+
+const UNIT_PATTERN = [
+  'tablespoons?','tbsps?','tbsp',
+  'teaspoons?','tsps?','tsp',
+  'fluid ounces?','fl\\.? ?ozs?',
+  'gallons?','gal',
+  'quarts?','qt',
+  'pints?','pt',
+  'cups?',
+  'pounds?','lbs?','lb',
+  'ounces?','ozs?','oz',
+  'kilograms?','kgs?','kg',
+  'grams?','g',
+  'milligrams?','mg',
+  'millilitres?','milliliters?','ml',
+  'centilitres?','centiliters?','cl',
+  'decilitres?','deciliters?','dl',
+  'litres?','liters?','l',
+  'sticks?',
+  'pinch','pinches',
+  'handful','handfuls',
+  'slices?',
+  'pieces?',
+  'cloves?',
+  'sprigs?',
+  'bunches?',
+  'cans?','tins?',
+  'packages?','pkgs?',
+  'heads?',
+].join('|');
+
+const ING_REGEX = new RegExp(
+  '^' +
+  // quantity: integer/decimal, fraction, or mixed number like "1 1/2"
+  // Fraction MUST come before decimal so "1/2" isn't consumed as just "1"
+  '((?:\\d+\\.?\\d*\\s+)?(?:\\d+\\/\\d+|\\d+\\.?\\d*))?' +
+  '\\s*' +
+  // unit
+  '(?:(' + UNIT_PATTERN + ')\\b)?' +
+  '\\.?\\s*',
+  'i'
+);
+
+// Regex to find a measurement inside a parenthetical: (400 ml), (14oz), (400g) etc.
+const PAREN_MEASURE_RE = new RegExp(
+  '\\(\\s*(\\d+\\.?\\d*)\\s*(' + UNIT_PATTERN + ')\\b\\s*\\)',
+  'i'
+);
+
+function parseIngredient(raw) {
+  let text = normalizeFractions(raw.trim());
+  // Handle em-dash or range like "1-2 cups" → take first number
+  text = text.replace(/(\d)\s*[-–]\s*(\d)/g, '$1');
+
+  // Check for a measurement inside parentheticals BEFORE stripping them
+  // e.g. "1 (400 ml) can coconut milk" → parenQty=400, parenUnit='ml'
+  let parenQty = null, parenUnit = '';
+  const parenM = text.match(PAREN_MEASURE_RE);
+  if (parenM) {
+    const pu = canonicalUnit(parenM[2].toLowerCase());
+    // Only use if it's a real volume/weight unit (not a count like "can")
+    if (VOLUME_TO_ML[pu] || WEIGHT_TO_G[pu]) {
+      parenQty = parseFloat(parenM[1]);
+      parenUnit = pu;
+    }
+  }
+
+  // Strip parentheticals so "1 (400ml) can X" → "1 can X" for qty/unit parsing
+  const stripped = text.replace(/\s*\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();
+
+  const match = stripped.match(ING_REGEX);
+  let qty = null, unit = '', name = text;
+
+  if (match) {
+    const rawQty = (match[1] || '').trim();
+    const rawUnit = (match[2] || '').trim().toLowerCase();
+    name = stripped.slice(match[0].length).trim() || text;
+
+    if (rawQty) {
+      const parts = rawQty.split(/\s+/);
+      qty = parts.length === 2
+        ? parseFraction(parts[0]) + parseFraction(parts[1])
+        : parseFraction(rawQty);
+    }
+    unit = rawUnit;
+  }
+
+  unit = canonicalUnit(unit);
+
+  // If we found a volume/weight measurement in a parenthetical (e.g. "(400ml)"),
+  // multiply it by the outer count to get the true quantity.
+  // "1 (400ml) can" → 1 × 400 = 400ml;  "2 (400ml) cans" → 2 × 400 = 800ml
+  if (parenQty !== null) {
+    qty = (qty ?? 1) * parenQty;
+    unit = parenUnit;
+  }
+
+  return { qty, unit, name: name || raw.trim(), original: raw };
+}
+
+function canonicalUnit(u) {
+  u = u.toLowerCase().trim();
+  if (/^tbsps?$|^tablespoons?$/.test(u)) return 'tbsp';
+  if (/^tsps?$|^teaspoons?$/.test(u)) return 'tsp';
+  if (/^cups?$/.test(u)) return 'cup';
+  if (/^(fl\.? ?oz|fluid ounces?)$/.test(u)) return 'fl oz';
+  if (/^pints?|^pt$/.test(u)) return 'pint';
+  if (/^quarts?|^qt$/.test(u)) return 'quart';
+  if (/^gallons?|^gal$/.test(u)) return 'gallon';
+  if (/^ounces?$|^ozs?$/.test(u)) return 'oz';
+  if (/^pounds?$|^lbs?$/.test(u)) return 'lb';
+  if (/^(kgs?|kilograms?)$/.test(u)) return 'kg';
+  if (/^(grams?|g)$/.test(u)) return 'g';
+  if (/^(milligrams?|mg)$/.test(u)) return 'mg';
+  if (/^(millilitres?|milliliters?|ml)$/.test(u)) return 'ml';
+  if (/^(litres?|liters?|l)$/.test(u)) return 'l';
+  return u;
+}
+
+// ─── Unit conversion ─────────────────────────────────────────────────────────
+function convertUnit(qty, unit, targetSystem) {
+  if (qty == null || !unit) return { qty, unit };
+
+  const isImperialVol = IMPERIAL_VOLUME.has(unit);
+  const isMetricVol = METRIC_VOLUME.has(unit);
+  const isImperialWt = IMPERIAL_WEIGHT.has(unit);
+  const isMetricWt = METRIC_WEIGHT.has(unit);
+
+  if (targetSystem === 'metric') {
+    if (isImperialVol) {
+      const ml = qty * VOLUME_TO_ML[unit];
+      return formatMetricVolume(ml);
+    }
+    if (isImperialWt) {
+      const g = qty * WEIGHT_TO_G[unit];
+      return formatMetricWeight(g);
+    }
+  } else { // imperial
+    if (isMetricVol) {
+      const ml = qty * VOLUME_TO_ML[unit];
+      return formatImperialVolume(ml);
+    }
+    if (isMetricWt) {
+      const g = qty * WEIGHT_TO_G[unit];
+      return formatImperialWeight(g);
+    }
+  }
+
+  return { qty, unit };
+}
+
+function formatMetricVolume(ml) {
+  if (ml >= 950) return { qty: +(ml / 1000).toFixed(2), unit: 'l' };
+  if (ml >= 100) return { qty: Math.round(ml / 5) * 5, unit: 'ml' };
+  return { qty: Math.round(ml), unit: 'ml' };
+}
+
+function formatMetricWeight(g) {
+  if (g >= 950) return { qty: +(g / 1000).toFixed(2), unit: 'kg' };
+  if (g >= 10) return { qty: Math.round(g / 5) * 5, unit: 'g' };
+  return { qty: Math.round(g), unit: 'g' };
+}
+
+function formatImperialVolume(ml) {
+  if (ml >= 946) return { qty: +((ml / 946.353).toFixed(1)), unit: 'quart' };
+  if (ml >= 473) return { qty: +((ml / 473.176).toFixed(1)), unit: 'pint' };
+  if (ml >= 59) return { qty: +((ml / 236.588).toFixed(2)), unit: 'cup' };
+  if (ml >= 14) return { qty: +((ml / 14.7868).toFixed(1)), unit: 'tbsp' };
+  return { qty: +((ml / 4.92892).toFixed(1)), unit: 'tsp' };
+}
+
+function formatImperialWeight(g) {
+  if (g >= 454) return { qty: +((g / 453.592).toFixed(2)), unit: 'lb' };
+  return { qty: +((g / 28.3495).toFixed(1)), unit: 'oz' };
+}
+
+// ─── Number formatting ────────────────────────────────────────────────────────
+function formatQty(n) {
+  if (n == null) return '';
+  const rounded = Math.round(n * 8) / 8;
+  const whole = Math.floor(rounded);
+  const frac = rounded - whole;
+  const FRAC_DISPLAY = {
+    0.125: '⅛', 0.25: '¼', 0.375: '⅜', 0.5: '½',
+    0.625: '⅝', 0.75: '¾', 0.875: '⅞',
+  };
+  const fracStr = FRAC_DISPLAY[Math.round(frac * 1000) / 1000] || '';
+  if (whole === 0) return fracStr || String(+(n.toFixed(2)));
+  if (!fracStr) return String(whole);
+  return `${whole} ${fracStr}`;
+}
+
+// ─── Fetch helpers ────────────────────────────────────────────────────────────
+
+// When served from the local server, use relative URLs (same origin = no CORS).
+// When opened as a file, fall back to public proxies.
+const IS_LOCAL = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
+const CORS_PROXIES = [
+  url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  url => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+  url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+];
+
+function fetchWithTimeout(url, ms) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), ms);
+  return fetch(url, { signal: controller.signal })
+    .finally(() => clearTimeout(id));
+}
+
+// Returns parsed recipe object. Throws with a user-readable message on failure.
+async function getRecipe(url) {
+  // ── Path A: running via local server (/recipe endpoint returns JSON directly)
+  if (IS_LOCAL) {
+    const res = await fetchWithTimeout(`/recipe?url=${encodeURIComponent(url)}`, 25000);
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || `Server error ${res.status}`);
+    // Server returns raw ingredient strings — parse them the same way as the HTML path
+    data.ingredients = (data.ingredients || []).map(parseIngredient);
+    return data;
+  }
+
+  // ── Path B: opened as a file — fetch HTML via CORS proxies, parse in browser
+  const errors = [];
+  for (const proxyFn of CORS_PROXIES) {
+    try {
+      const res = await fetchWithTimeout(proxyFn(url), 15000);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      if (text.length < 200) throw new Error('Response too short');
+      const recipe = extractRecipeFromHtml(text);
+      if (!recipe) throw new Error('No recipe data found on page');
+      if (!recipe.ingredients.length) throw new Error('Recipe found but has no ingredients');
+      return recipe;
+    } catch(e) {
+      errors.push(e.message);
+    }
+  }
+  throw new Error(
+    `Could not load the recipe. For protected sites (like Waitrose), run the local server:\n\n` +
+    `  python3 recipe-server.py\n\nthen visit http://localhost:8765\n\n` +
+    `Details: ${errors.join(' | ')}`
+  );
+}
+
+// ─── Recipe extraction from HTML ──────────────────────────────────────────────
+function extractRecipeFromHtml(html) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  const scripts = doc.querySelectorAll('script[type="application/ld+json"]');
+
+  for (const script of scripts) {
+    try {
+      let data = JSON.parse(script.textContent);
+      // Handle array or @graph
+      const candidates = [];
+      if (Array.isArray(data)) candidates.push(...data);
+      else if (data['@graph']) candidates.push(...data['@graph']);
+      else candidates.push(data);
+
+      for (const item of candidates) {
+        const type = item['@type'];
+        const types = Array.isArray(type) ? type : [type];
+        if (types.includes('Recipe')) {
+          return buildRecipe(item);
+        }
+      }
+    } catch(e) {}
+  }
+
+  // Fallback: search raw html for JSON-LD
+  const raw = html.matchAll(/<script[^>]*type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/gi);
+  for (const m of raw) {
+    try {
+      let data = JSON.parse(m[1]);
+      const candidates = [];
+      if (Array.isArray(data)) candidates.push(...data);
+      else if (data && data['@graph']) candidates.push(...data['@graph']);
+      else if (data) candidates.push(data);
+      for (const item of candidates) {
+        const types = [].concat(item['@type'] || []);
+        if (types.includes('Recipe')) return buildRecipe(item);
+      }
+    } catch(e) {}
+  }
+
+  // Fallback: parse __NEXT_DATA__ (Next.js sites like BBC Good Food, Waitrose)
+  const nextDataMatch = html.match(/<script[^>]*id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/i);
+  if (nextDataMatch) {
+    try {
+      const nextData = JSON.parse(nextDataMatch[1]);
+      const found = findRecipeInObject(nextData, 0);
+      if (found) return buildRecipe(found);
+    } catch(e) {}
+  }
+
+  return null;
+}
+
+// Recursively search any object for a node with @type "Recipe"
+function findRecipeInObject(obj, depth) {
+  if (depth > 10 || !obj || typeof obj !== 'object') return null;
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      const r = findRecipeInObject(item, depth + 1);
+      if (r) return r;
+    }
+    return null;
+  }
+  const types = [].concat(obj['@type'] || []);
+  if (types.includes('Recipe') && (obj.recipeIngredient || obj.recipeInstructions)) return obj;
+  for (const val of Object.values(obj)) {
+    const r = findRecipeInObject(val, depth + 1);
+    if (r) return r;
+  }
+  return null;
+}
+
+function buildRecipe(data) {
+  const name = data.name || 'Untitled Recipe';
+  const description = stripHtml(data.description || '');
+  const image = extractImage(data.image);
+
+  // Servings
+  let servings = 1;
+  const yieldRaw = data.recipeYield || data.yield;
+  if (yieldRaw) {
+    const yArr = Array.isArray(yieldRaw) ? yieldRaw : [yieldRaw];
+    for (const y of yArr) {
+      const n = parseFloat(String(y));
+      if (!isNaN(n) && n > 0) { servings = n; break; }
+    }
+  }
+
+  // Ingredients
+  const ingredients = [].concat(data.recipeIngredient || []).map(parseIngredient);
+
+  // Instructions
+  const instructions = extractInstructions(data.recipeInstructions || []);
+
+  // Meta
+  const meta = [];
+  if (data.prepTime) meta.push({ label: 'Prep', value: formatDuration(data.prepTime) });
+  if (data.cookTime) meta.push({ label: 'Cook', value: formatDuration(data.cookTime) });
+  if (data.totalTime) meta.push({ label: 'Total', value: formatDuration(data.totalTime) });
+  if (servings > 1) meta.push({ label: 'Serves', value: servings });
+  if (data.recipeCuisine) meta.push({ label: 'Cuisine', value: [].concat(data.recipeCuisine).join(', ') });
+  if (data.recipeCategory) meta.push({ label: 'Category', value: [].concat(data.recipeCategory).join(', ') });
+  if (data.keywords) {
+    const kws = typeof data.keywords === 'string' ? data.keywords.split(',').slice(0,4).join(', ') : [].concat(data.keywords).slice(0,4).join(', ');
+    if (kws) meta.push({ label: '', value: kws });
+  }
+
+  return { name, description, image, servings, ingredients, instructions, meta };
+}
+
+function extractImage(img) {
+  if (!img) return null;
+  if (typeof img === 'string') return img;
+  if (Array.isArray(img)) {
+    for (const i of img) {
+      const url = typeof i === 'string' ? i : (i.url || i.contentUrl);
+      if (url) return url;
+    }
+  }
+  return img.url || img.contentUrl || null;
+}
+
+function extractInstructions(raw) {
+  const steps = [];
+  const items = Array.isArray(raw) ? raw : [raw];
+  for (const item of items) {
+    if (!item) continue;
+    if (typeof item === 'string') {
+      const s = stripHtml(item).trim();
+      if (s) steps.push(s);
+    } else if (item['@type'] === 'HowToStep') {
+      const s = stripHtml(item.text || item.name || '').trim();
+      if (s) steps.push(s);
+    } else if (item['@type'] === 'HowToSection') {
+      const sectionSteps = [].concat(item.itemListElement || []);
+      for (const ss of sectionSteps) {
+        const s = stripHtml((typeof ss === 'string' ? ss : (ss.text || ss.name || ''))).trim();
+        if (s) steps.push(s);
+      }
+    }
+  }
+  return steps;
+}
+
+function stripHtml(str) {
+  return String(str).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function formatDuration(iso) {
+  if (!iso) return '';
+  const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!m) return iso;
+  const h = parseInt(m[1] || 0);
+  const min = parseInt(m[2] || 0);
+  if (h && min) return `${h}h ${min}m`;
+  if (h) return `${h}h`;
+  if (min) return `${min} min`;
+  return iso;
+}
+
+// ─── Render ───────────────────────────────────────────────────────────────────
+function renderIngredients() {
+  const { recipe, originalServings, currentServings, units } = state;
+  const scale = currentServings / originalServings;
+  const list = document.getElementById('ingredients-list');
+  list.innerHTML = '';
+
+  for (const ing of recipe.ingredients) {
+    let qty = ing.qty != null ? ing.qty * scale : null;
+    let unit = ing.unit;
+
+    // Convert unit system
+    const converted = convertUnit(qty, unit, units);
+    qty = converted.qty;
+    unit = converted.unit;
+
+    const li = document.createElement('li');
+    const qtyStr = qty != null ? formatQty(qty) : '';
+    const unitStr = unit ? ' ' + unit : '';
+    li.innerHTML = `<span class="ing-qty">${qtyStr}${unitStr}</span><span class="ing-name">${escHtml(ing.name)}</span>`;
+    list.appendChild(li);
+  }
+}
+
+// ─── Ingredient annotation in steps ──────────────────────────────────────────
+
+// Words too generic to use as sole match terms
+const ANNOTATION_STOP_WORDS = new Set([
+  'fresh','dried','ground','whole','large','small','medium','extra','good','quality',
+  'finely','roughly','thinly','coarsely','freshly','lightly','gently',
+  'chopped','sliced','grated','minced','diced','peeled','pitted','crushed',
+  'halved','quartered','beaten','melted','softened','toasted','roasted',
+  'plain','self','raising','virgin','free','range','organic',
+  'the','and','for','with','from','into','onto','about','plus',
+]);
+
+function stemWord(w) {
+  // Simple English stemmer for plural/past-participle matching
+  return w
+    .replace(/ies$/i, 'y')
+    .replace(/ves$/i, 'f')
+    .replace(/([^aeiou])es$/i, '$1')
+    .replace(/([^aeiou])s$/i, '$1');
+}
+
+function makePattern(term) {
+  // Build a regex that matches the term and common inflections
+  const stem = stemWord(term.trim());
+  const escaped = stem.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return new RegExp(`\\b${escaped}(?:ies|ves|es|s)?\\b`, 'gi');
+}
+
+function searchTermsFor(name) {
+  // Returns search terms ordered from most to least specific
+  const words = name.split(/\s+/).filter(w => w.length >= 2);
+  const terms = [];
+
+  // Full name
+  if (name.length >= 2) terms.push(name);
+
+  // Suffix sub-phrases: "fresh coriander leaves" → "coriander leaves", "leaves"
+  for (let i = 1; i < words.length; i++) {
+    const phrase = words.slice(i).join(' ');
+    if (!terms.includes(phrase)) terms.push(phrase);
+  }
+
+  // Prefix sub-phrases: "fresh coriander"
+  for (let i = words.length - 1; i >= 1; i--) {
+    const phrase = words.slice(0, i).join(' ');
+    if (!terms.includes(phrase)) terms.push(phrase);
+  }
+
+  // Individual significant words (last resort, no stop words)
+  for (const w of words) {
+    if (!ANNOTATION_STOP_WORDS.has(w.toLowerCase()) && w.length >= 3 && !terms.includes(w)) {
+      terms.push(w);
+    }
+  }
+
+  return terms;
+}
+
+function annotateStep(plainText, scale, units) {
+  const ingredients = state.recipe.ingredients;
+
+  // Build candidates with label + search terms, sorted longest name first
+  const candidates = ingredients
+    .map(ing => {
+      let qty = ing.qty != null ? ing.qty * scale : null;
+      let unit = ing.unit;
+      const conv = convertUnit(qty, unit, units);
+      qty = conv.qty; unit = conv.unit;
+      const qtyStr = qty != null ? formatQty(qty) : '';
+      const unitStr = unit ? ' ' + unit : '';
+      const label = (qtyStr + unitStr).trim();
+      // Skip bare "1" with no unit — not meaningful inline
+      if (!label || (label === '1' && !unit)) return null;
+
+      // Canonical name: strip parentheticals, prep notes, normalise whitespace
+      const baseName = ing.name
+        .replace(/\s*\(.*?\)/g, '')
+        .replace(/,.*$/, '')
+        .replace(/[\u00a0\s]+/g, ' ')
+        .trim();
+      if (baseName.length < 2) return null;
+
+      return { label, baseName, terms: searchTermsFor(baseName) };
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.baseName.length - a.baseName.length);
+
+  const found = []; // { start, end, matchedText, label }
+  const usedNames = new Set();
+
+  for (const { label, baseName, terms } of candidates) {
+    if (usedNames.has(baseName)) continue;
+
+    for (const term of terms) {
+      // Skip single stop words
+      if (ANNOTATION_STOP_WORDS.has(term.toLowerCase())) continue;
+
+      const pattern = makePattern(term);
+      const m = pattern.exec(plainText);
+      if (!m) continue;
+
+      const start = m.index, end = m.index + m[0].length;
+      if (found.some(e => start < e.end && end > e.start)) continue; // overlap
+
+      found.push({ start, end, matchedText: m[0], label });
+      usedNames.add(baseName);
+      break; // matched — move to next ingredient
+    }
+  }
+
+  if (!found.length) return escHtml(plainText);
+
+  found.sort((a, b) => a.start - b.start);
+
+  let html = '', pos = 0;
+  for (const { start, end, matchedText, label } of found) {
+    html += escHtml(plainText.slice(pos, start));
+    html += `${escHtml(matchedText)}<span class="ing-ref-qty">${escHtml(label)}</span>`;
+    pos = end;
+  }
+  html += escHtml(plainText.slice(pos));
+  return html;
+}
+
+function renderInstructions() {
+  const { recipe, units } = state;
+  const scale = state.currentServings / state.originalServings;
+  const list = document.getElementById('instructions-list');
+  list.innerHTML = '';
+
+  recipe.instructions.forEach((step, i) => {
+    const li = document.createElement('li');
+
+    // Convert temperatures
+    let text = step;
+    if (units === 'metric') {
+      text = text.replace(/(\d+)\s*°?\s*F\b/g, (_, f) => `${Math.round((+f - 32) * 5 / 9)}°C`);
+      text = text.replace(/(\d+)\s*degrees?\s*F(?:ahrenheit)?/gi, (_, f) => `${Math.round((+f - 32) * 5 / 9)}°C`);
+    } else {
+      text = text.replace(/(\d+)\s*°?\s*C\b(?!elsius)/g, (_, c) => `${Math.round(+c * 9 / 5 + 32)}°F`);
+      text = text.replace(/(\d+)\s*degrees?\s*C(?:elsius)?/gi, (_, c) => `${Math.round(+c * 9 / 5 + 32)}°F`);
+    }
+
+    const annotatedHtml = annotateStep(text, scale, units);
+    li.innerHTML = `<span class="step-num">${i + 1}</span><span class="step-text">${annotatedHtml}</span>`;
+    list.appendChild(li);
+  });
+}
+
+function renderRecipe() {
+  const { recipe, currentServings } = state;
+
+  // Hero
+  const img = document.getElementById('recipe-img');
+  const imgWrap = document.getElementById('recipe-img-wrap');
+  if (recipe.image) {
+    img.src = recipe.image;
+    img.alt = recipe.name;
+    imgWrap.style.display = 'block';
+    img.onerror = () => { imgWrap.style.display = 'none'; };
+  } else {
+    imgWrap.style.display = 'none';
+  }
+  document.getElementById('recipe-name').textContent = recipe.name;
+  document.getElementById('recipe-desc').textContent = recipe.description;
+
+  const metaEl = document.getElementById('recipe-meta');
+  metaEl.innerHTML = '';
+  const metaIcons = { Prep: '⏱', Cook: '🔥', Total: '⏰', Serves: '👥', Cuisine: '🌍', Category: '🏷' };
+  for (const m of recipe.meta) {
+    const tag = document.createElement('span');
+    tag.className = 'meta-tag';
+    const icon = metaIcons[m.label] || '';
+    tag.innerHTML = m.label
+      ? `${icon ? icon + ' ' : ''}<b>${escHtml(String(m.value))}</b>&nbsp;${escHtml(m.label)}`
+      : escHtml(String(m.value));
+    metaEl.appendChild(tag);
+  }
+
+  document.getElementById('servings-display').textContent = currentServings;
+  renderIngredients();
+  renderInstructions();
+}
+
+function escHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── Controls ─────────────────────────────────────────────────────────────────
+function changeServings(delta) {
+  const next = state.currentServings + delta;
+  if (next < 1) return;
+  state.currentServings = next;
+  document.getElementById('servings-display').textContent = next;
+  renderIngredients();
+  renderInstructions();
+}
+
+function setUnits(system) {
+  state.units = system;
+  document.getElementById('btn-imperial').classList.toggle('active', system === 'imperial');
+  document.getElementById('btn-metric').classList.toggle('active', system === 'metric');
+  renderIngredients();
+  renderInstructions();
+}
+
+// ─── Main fetch flow ──────────────────────────────────────────────────────────
+async function fetchRecipe() {
+  const url = document.getElementById('url-input').value.trim();
+  if (!url) return;
+
+  const btn = document.getElementById('fetch-btn');
+  const errorBox = document.getElementById('error-box');
+  const skeleton = document.getElementById('skeleton');
+  const output = document.getElementById('recipe-output');
+
+  errorBox.style.display = 'none';
+  output.style.display = 'none';
+  skeleton.style.display = 'block';
+  btn.disabled = true;
+  btn.textContent = 'Fetching…';
+
+  try {
+    const recipe = await getRecipe(url);
+
+    state.recipe = recipe;
+    state.originalServings = recipe.servings;
+    state.currentServings = recipe.servings;
+    state.units = 'metric';
+    document.getElementById('btn-metric').classList.add('active');
+    document.getElementById('btn-imperial').classList.remove('active');
+
+    const sourceLink = document.getElementById('source-link');
+    sourceLink.href = url;
+
+    renderRecipe();
+    skeleton.style.display = 'none';
+    output.style.display = 'block';
+    output.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  } catch(err) {
+    skeleton.style.display = 'none';
+    errorBox.style.display = 'block';
+    errorBox.textContent = err.message || 'Something went wrong. Please try another URL.';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Get Recipe';
+  }
+}
+
+// Allow Enter key to trigger fetch
+document.getElementById('url-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') fetchRecipe();
+});
+
+// Show server status on load
+(() => {
+  const statusEl = document.getElementById('server-status');
+  const hintEl = document.getElementById('hint-text');
+  statusEl.style.display = 'flex';
+  if (IS_LOCAL) {
+    statusEl.className = 'server-status online';
+    statusEl.innerHTML = '<span class="status-dot"></span>Local server running — all recipe sites supported';
+    hintEl.textContent = 'Paste any recipe URL and press Get Recipe.';
+  } else {
+    statusEl.className = 'server-status offline';
+    statusEl.innerHTML = '<span class="status-dot"></span>For best results run: <code style="background:#fef08a;padding:1px 5px;border-radius:3px;margin:0 4px;">python3 recipe-server.py</code> then visit <b>http://localhost:8765</b>';
+    hintEl.textContent = 'Works with AllRecipes, BBC Good Food, Serious Eats, NYT Cooking, and many more.';
+  }
+})();
+</script>
+
+<!-- PWA service worker registration -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
+}
+</script>
+
+</body>
+</html>

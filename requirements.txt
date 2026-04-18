@@ -1,0 +1,3 @@
+requests
+curl-cffi
+playwright
