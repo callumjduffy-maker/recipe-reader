@@ -825,7 +825,9 @@ function formatQty(n) {
 
 // When served from the local server, use relative URLs (same origin = no CORS).
 // When opened as a file, fall back to public proxies.
-const IS_LOCAL = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+// True whenever the page is being served by recipe-server.py (localhost or any cloud deployment)
+// False only when the HTML file is opened directly from disk (file://)
+const IS_LOCAL = location.protocol !== 'file:';
 
 const CORS_PROXIES = [
   url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
@@ -1322,7 +1324,7 @@ document.getElementById('url-input').addEventListener('keydown', e => {
   statusEl.style.display = 'flex';
   if (IS_LOCAL) {
     statusEl.className = 'server-status online';
-    statusEl.innerHTML = '<span class="status-dot"></span>Local server running — all recipe sites supported';
+    statusEl.innerHTML = '<span class="status-dot"></span>Server running — all recipe sites supported';
     hintEl.textContent = 'Paste any recipe URL and press Get Recipe.';
   } else {
     statusEl.className = 'server-status offline';
