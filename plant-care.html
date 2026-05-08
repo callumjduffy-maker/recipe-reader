@@ -928,6 +928,88 @@
     to   { opacity: 1; transform: translateX(-50%) translateY(0); }
   }
 
+  /* ── User Screen ── */
+  .user-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--primary);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+  }
+
+  .user-screen-card {
+    background: white;
+    border-radius: 24px;
+    padding: 40px 32px;
+    width: 100%;
+    max-width: 360px;
+    text-align: center;
+    box-shadow: 0 16px 48px rgba(0,0,0,0.2);
+    animation: slideUp 0.3s ease;
+  }
+
+  .user-screen-emoji { font-size: 4rem; margin-bottom: 16px; }
+
+  .user-screen-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .user-screen-sub {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-bottom: 28px;
+  }
+
+  .user-screen input {
+    width: 100%;
+    padding: 13px 16px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    font-size: 1rem;
+    color: var(--text);
+    outline: none;
+    margin-bottom: 14px;
+    transition: border-color 0.15s;
+  }
+  .user-screen input:focus { border-color: var(--primary); }
+
+  .user-screen-btn {
+    width: 100%;
+    padding: 13px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .user-screen-btn:hover { background: var(--primary-light); }
+
+  .user-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .user-chip:hover { background: rgba(255,255,255,0.3); }
+
   /* ── Responsive ── */
   @media (max-width: 600px) {
     main { padding: 16px 14px; }
@@ -942,6 +1024,18 @@
 </head>
 <body>
 
+<!-- User Selection Screen -->
+<div class="user-screen" id="user-screen" style="display:none">
+  <div class="user-screen-card">
+    <div class="user-screen-emoji">🌿</div>
+    <div class="user-screen-title">Welcome to Plant Care</div>
+    <div class="user-screen-sub">What's your name?</div>
+    <input type="text" id="user-name-input" placeholder="e.g. Callum" maxlength="40"
+           onkeydown="if(event.key==='Enter') confirmUser()">
+    <button class="user-screen-btn" onclick="confirmUser()">Let's go →</button>
+  </div>
+</div>
+
 <header>
   <div class="header-brand">
     <span>🌿</span> Plant Care
@@ -950,6 +1044,9 @@
     <button class="tab active" data-tab="plants" onclick="setView('plants')">My Plants</button>
     <button class="tab" data-tab="schedule" onclick="setView('schedule')">Schedule</button>
   </nav>
+  <button class="user-chip" id="user-chip" onclick="switchUser()" title="Switch user" style="display:none">
+    👤 <span id="user-chip-name"></span>
+  </button>
 </header>
 
 <main>
@@ -1030,15 +1127,54 @@ let currentView = 'plants';
 let selectedFile = null;
 let selectedImageData = null;
 let toastTimer = null;
+let currentUser = localStorage.getItem('plantUser') || '';
+
+// ── User ───────────────────────────────────────────────────────────────────────
+function confirmUser() {
+  const name = document.getElementById('user-name-input').value.trim();
+  if (!name) return;
+  currentUser = name;
+  localStorage.setItem('plantUser', name);
+  document.getElementById('user-screen').style.display = 'none';
+  updateUserChip();
+  loadPlants();
+}
+
+function switchUser() {
+  if (!confirm('Switch user? You\'ll need to enter your name again.')) return;
+  currentUser = '';
+  localStorage.removeItem('plantUser');
+  plants = [];
+  render();
+  document.getElementById('user-chip').style.display = 'none';
+  document.getElementById('user-screen').style.display = 'flex';
+  setTimeout(() => document.getElementById('user-name-input').focus(), 50);
+}
+
+function updateUserChip() {
+  const chip = document.getElementById('user-chip');
+  document.getElementById('user-chip-name').textContent = currentUser;
+  chip.style.display = currentUser ? '' : 'none';
+}
 
 // ── Init ───────────────────────────────────────────────────────────────────────
-async function init() {
+async function loadPlants() {
   try {
     plants = await apiFetch('/api/plants');
     render();
   } catch (e) {
     showToast('Failed to load plants', true);
   }
+}
+
+async function init() {
+  if (!currentUser) {
+    document.getElementById('user-screen').style.display = 'flex';
+    setTimeout(() => document.getElementById('user-name-input').focus(), 50);
+    return;
+  }
+  updateUserChip();
+  await loadPlants();
 }
 
 // ── View ───────────────────────────────────────────────────────────────────────
@@ -1632,7 +1768,9 @@ async function handleDelete(plantId) {
 
 // ── API ────────────────────────────────────────────────────────────────────────
 async function apiFetch(url, opts = {}) {
-  const r = await fetch(url, opts);
+  const sep = url.includes('?') ? '&' : '?';
+  const fullUrl = currentUser ? `${url}${sep}user=${encodeURIComponent(currentUser)}` : url;
+  const r = await fetch(fullUrl, opts);
   const data = await r.json().catch(() => ({ error: r.statusText }));
   if (!r.ok) throw new Error(data.error || `Request failed (${r.status})`);
   return data;
