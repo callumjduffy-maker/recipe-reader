@@ -380,6 +380,43 @@ def compute_next_watering(last_watered_str, frequency_days):
     return (last + timedelta(days=int(frequency_days))).isoformat()
 
 
+# ── PWA icon ───────────────────────────────────────────────────────────────────
+
+_ICON_CACHE = None
+
+def _get_icon():
+    global _ICON_CACHE
+    if _ICON_CACHE:
+        return _ICON_CACHE
+    try:
+        from PIL import Image, ImageDraw
+        import io
+        s = 512
+        img = Image.new("RGBA", (s, s), (0, 0, 0, 0))
+        d = ImageDraw.Draw(img)
+        # Dark green circle background
+        d.ellipse([0, 0, s, s], fill=(45, 106, 79, 255))
+        # Terracotta pot
+        d.rectangle([s//2 - 65, s*11//16, s//2 + 65, s - 55], fill=(180, 100, 55, 255))
+        d.ellipse([s//2 - 75, s*11//16 - 18, s//2 + 75, s*11//16 + 18], fill=(155, 82, 42, 255))
+        # Stem
+        d.rectangle([s//2 - 10, s*5//16, s//2 + 10, s*11//16], fill=(88, 166, 57, 255))
+        # Left leaf
+        d.ellipse([s//5, s*3//8, s//2 + 25, s*5//8], fill=(95, 190, 65, 255))
+        # Right leaf
+        d.ellipse([s//2 - 25, s//4, s*4//5, s//2 + 30], fill=(120, 210, 80, 255))
+        # Top leaf
+        d.ellipse([s//2 - 50, s//8, s//2 + 50, s*7//16], fill=(160, 225, 95, 255))
+        buf = io.BytesIO()
+        img.save(buf, "PNG")
+        _ICON_CACHE = buf.getvalue()
+    except Exception:
+        _ICON_CACHE = base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+        )
+    return _ICON_CACHE
+
+
 # ── HTTP handler ───────────────────────────────────────────────────────────────
 
 class PlantHandler(http.server.BaseHTTPRequestHandler):
@@ -593,10 +630,7 @@ class PlantHandler(http.server.BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _serve_icon(self):
-        icon_path = BASE_DIR / "icon.png"
-        body = icon_path.read_bytes() if icon_path.exists() else base64.b64decode(
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
-        )
+        body = _get_icon()
         self.send_response(200)
         self.send_header("Content-Type", "image/png")
         self.send_header("Content-Length", str(len(body)))
