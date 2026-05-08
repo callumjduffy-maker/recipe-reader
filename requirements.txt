@@ -1,3 +1,8 @@
 requests
 curl-cffi
 playwright
+anthropic
+google-genai
+pillow-heif
+Pillow
+psycopg2-binary

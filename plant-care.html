@@ -1,0 +1,1706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plant Care</title>
+<meta name="theme-color" content="#2d6a4f">
+<link rel="manifest" href="/manifest.json">
+<style>
+  :root {
+    --bg: #f0f7ee;
+    --surface: #ffffff;
+    --surface2: #f6faf5;
+    --primary: #2d6a4f;
+    --primary-light: #40916c;
+    --secondary: #52b788;
+    --accent: #74c69d;
+    --text: #1b4332;
+    --text-muted: #6b8f71;
+    --border: #d8f3dc;
+    --red: #e63946;
+    --orange: #f4a261;
+    --green: #52b788;
+    --shadow: 0 2px 12px rgba(45,106,79,0.10);
+    --shadow-lg: 0 8px 32px rgba(45,106,79,0.15);
+    --radius: 16px;
+    --radius-sm: 10px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--primary);
+    color: white;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+
+  .header-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+
+  .header-brand span { font-size: 1.5rem; }
+
+  .tabs {
+    display: flex;
+    gap: 4px;
+  }
+
+  .tab {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.7);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .tab.active {
+    background: rgba(255,255,255,0.2);
+    color: white;
+  }
+
+  .tab:hover:not(.active) { color: white; }
+
+  /* ── Main ── */
+  main {
+    flex: 1;
+    padding: 24px 20px;
+    max-width: 1100px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  /* ── Plants Grid ── */
+  .plants-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  /* ── Plant Card ── */
+  .plant-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .plant-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .plant-photo-wrapper {
+    position: relative;
+    padding-top: 65%;
+    background: #e8f5e9;
+    overflow: hidden;
+  }
+
+  .plant-photo {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+
+  .plant-photo-placeholder {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 4rem;
+    background: linear-gradient(135deg, #d8f3dc, #b7e4c7);
+  }
+
+  .health-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: white;
+    border: 2px solid rgba(255,255,255,0.8);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    flex-shrink: 0;
+  }
+
+  .plant-info {
+    padding: 16px 16px 8px;
+    flex: 1;
+  }
+
+  .plant-name {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+
+  .plant-species {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-style: italic;
+    margin-bottom: 10px;
+  }
+
+  .watering-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .watering-pill svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+  .last-watered-text {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .plant-actions {
+    padding: 10px 12px 12px;
+    display: flex;
+    gap: 8px;
+    border-top: 1px solid var(--border);
+    background: var(--surface2);
+  }
+
+  .btn {
+    flex: 1;
+    padding: 7px 6px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+
+  .btn-water {
+    background: var(--primary);
+    color: white;
+  }
+  .btn-water:hover { background: var(--primary-light); }
+
+  .btn-analyze {
+    background: var(--surface);
+    color: var(--primary);
+    border: 1px solid var(--border);
+  }
+  .btn-analyze:hover { background: var(--border); }
+
+  .btn-delete {
+    background: none;
+    color: #aaa;
+    border: 1px solid transparent;
+    flex: 0;
+    padding: 7px 10px;
+  }
+  .btn-delete:hover { color: var(--red); border-color: #fcc; background: #fff5f5; }
+
+  /* ── Empty State ── */
+  .empty-state {
+    text-align: center;
+    padding: 80px 20px;
+    color: var(--text-muted);
+  }
+
+  .empty-state .icon { font-size: 5rem; margin-bottom: 16px; }
+  .empty-state h2 { font-size: 1.4rem; color: var(--text); margin-bottom: 8px; }
+  .empty-state p { font-size: 0.95rem; margin-bottom: 28px; }
+
+  .btn-primary {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .btn-primary:hover { background: var(--primary-light); }
+
+  /* ── FAB ── */
+  .fab {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    border: none;
+    font-size: 1.8rem;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(45,106,79,0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    z-index: 50;
+    line-height: 1;
+  }
+  .fab:hover {
+    background: var(--primary-light);
+    transform: scale(1.08);
+    box-shadow: 0 6px 24px rgba(45,106,79,0.5);
+  }
+
+  /* ── Schedule / Calendar ── */
+  .calendar-wrap {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+
+  .calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .calendar-nav {
+    background: none; border: none; cursor: pointer;
+    width: 34px; height: 34px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; color: var(--text); transition: background 0.15s;
+  }
+  .calendar-nav:hover { background: var(--bg); }
+
+  .calendar-title { font-size: 1rem; font-weight: 700; color: var(--text); }
+
+  .calendar-today-btn {
+    background: none; border: 1px solid var(--border); cursor: pointer;
+    padding: 4px 10px; border-radius: 6px; font-size: 0.78rem;
+    font-weight: 600; color: var(--text-muted); transition: all 0.15s;
+  }
+  .calendar-today-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+  .calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+  }
+
+  .cal-dow {
+    text-align: center;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .cal-day {
+    min-height: 68px;
+    padding: 5px 4px 4px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.12s;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .cal-day:nth-child(7n) { border-right: none; }
+  .cal-day:hover { background: var(--bg); }
+  .cal-day.other-month { background: #fafafa; }
+  .cal-day.other-month .cal-day-num { color: #ccc; }
+  .cal-day.is-selected { background: #e8f5e9; }
+  .cal-day.is-selected:hover { background: #dcf0de; }
+
+  .cal-day-num {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text);
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+    align-self: flex-start;
+    margin-left: 1px;
+  }
+  .cal-day.is-today .cal-day-num {
+    background: var(--primary);
+    color: white;
+  }
+  .cal-day.has-overdue .cal-day-num { color: var(--red); }
+  .cal-day.is-today.has-overdue .cal-day-num { background: var(--red); color: white; }
+
+  .cal-dots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 0 1px;
+  }
+
+  .cal-dot {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 1.5px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    flex-shrink: 0;
+    background: var(--border);
+  }
+  .cal-dot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cal-dot.past { opacity: 0.4; border-color: #ddd; box-shadow: none; }
+
+  .cal-overflow {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--border);
+    color: var(--text-muted);
+    font-size: 0.55rem;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ── Selected day panel ── */
+  .cal-selected-panel {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+
+  .cal-selected-title {
+    padding: 12px 16px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .cal-selected-empty {
+    padding: 28px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+  }
+
+  .schedule-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+  .schedule-item:last-child { border-bottom: none; }
+  .schedule-item:hover { background: var(--bg); }
+
+  .schedule-thumb {
+    width: 44px; height: 44px;
+    border-radius: 9px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #d8f3dc, #b7e4c7);
+  }
+
+  .schedule-info { flex: 1; min-width: 0; }
+  .schedule-name { font-weight: 600; font-size: 0.92rem; }
+  .schedule-species { font-size: 0.75rem; color: var(--text-muted); font-style: italic; }
+  .schedule-label { font-size: 0.78rem; margin-top: 2px; }
+
+  .schedule-water-btn {
+    background: var(--primary); color: white; border: none;
+    padding: 6px 12px; border-radius: 8px; font-size: 0.78rem;
+    font-weight: 600; cursor: pointer; flex-shrink: 0; transition: background 0.15s;
+  }
+  .schedule-water-btn:hover { background: var(--primary-light); }
+
+  .schedule-empty {
+    text-align: center; padding: 40px;
+    color: var(--text-muted); font-size: 0.9rem;
+  }
+
+  /* ── Modals ── */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.15s ease;
+  }
+
+  .modal-overlay.hidden { display: none; }
+
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes slideUp { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius);
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-lg);
+    animation: slideUp 0.2s ease;
+  }
+
+  .modal-header {
+    padding: 20px 20px 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .modal-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    color: var(--text-muted);
+    cursor: pointer;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 6px;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .modal-close:hover { background: var(--bg); color: var(--text); }
+
+  .modal-body { padding: 20px; }
+
+  /* ── Add Plant Form ── */
+  .form-group { margin-bottom: 18px; }
+
+  label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.95rem;
+    color: var(--text);
+    background: var(--surface);
+    transition: border-color 0.15s;
+    outline: none;
+  }
+  input[type="text"]:focus { border-color: var(--primary); }
+
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-sm);
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    background: var(--bg);
+  }
+
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--primary);
+    background: #e8f5e9;
+    color: var(--primary);
+  }
+
+  .upload-zone .upload-icon { font-size: 2.5rem; margin-bottom: 8px; }
+  .upload-zone strong { display: block; color: var(--text); }
+
+  .upload-preview {
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    position: relative;
+    background: #e8f5e9;
+  }
+
+  .upload-preview img {
+    width: 100%;
+    max-height: 260px;
+    object-fit: cover;
+    display: block;
+  }
+
+  .heic-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 40px 20px;
+    font-size: 0.9rem;
+    color: var(--primary);
+    font-weight: 500;
+  }
+  .heic-placeholder span:first-child { font-size: 2.5rem; }
+  .heic-placeholder small { color: var(--text-muted); font-size: 0.78rem; font-weight: 400; }
+
+  .update-photo-btn {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    background: rgba(0,0,0,0.55);
+    color: white;
+    border: none;
+    padding: 7px 13px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    transition: background 0.15s;
+  }
+  .update-photo-btn:hover { background: rgba(0,0,0,0.75); }
+
+  .upload-preview-overlay {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.5));
+    padding: 12px;
+    text-align: center;
+  }
+
+  .btn-change-photo {
+    background: rgba(255,255,255,0.9);
+    color: var(--text);
+    border: none;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .form-submit {
+    width: 100%;
+    padding: 13px;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .form-submit:hover:not(:disabled) { background: var(--primary-light); }
+  .form-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  /* ── Detail Modal ── */
+  .detail-hero {
+    width: 100%;
+    aspect-ratio: 16/9;
+    object-fit: cover;
+    display: block;
+    background: linear-gradient(135deg, #d8f3dc, #b7e4c7);
+  }
+
+  .detail-hero-placeholder {
+    width: 100%;
+    aspect-ratio: 16/9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 5rem;
+    background: linear-gradient(135deg, #d8f3dc, #b7e4c7);
+  }
+
+  .detail-header {
+    padding: 20px 20px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .detail-name { font-size: 1.3rem; font-weight: 700; line-height: 1.2; }
+  .detail-species { font-size: 0.85rem; color: var(--text-muted); font-style: italic; margin-top: 2px; }
+
+  .detail-name-wrapper { display: flex; align-items: center; gap: 6px; }
+  .edit-name-btn {
+    background: none; border: none; cursor: pointer; font-size: 0.85rem;
+    color: var(--text-muted); padding: 2px 4px; border-radius: 4px; line-height: 1;
+    opacity: 0.6; transition: opacity 0.15s;
+  }
+  .edit-name-btn:hover { opacity: 1; }
+  .detail-name-input {
+    font-size: 1.2rem; font-weight: 700; color: var(--text);
+    border: 1.5px solid var(--primary); border-radius: 6px;
+    padding: 3px 8px; outline: none; width: 100%; min-width: 0;
+  }
+  .save-name-btn, .cancel-name-btn {
+    background: none; border: none; cursor: pointer; font-size: 1rem;
+    padding: 4px 6px; border-radius: 6px; flex-shrink: 0; transition: background 0.15s;
+  }
+  .save-name-btn { color: var(--primary); }
+  .save-name-btn:hover { background: #e8f5e9; }
+  .cancel-name-btn { color: var(--text-muted); }
+  .cancel-name-btn:hover { background: var(--bg); }
+
+  .detail-health {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .detail-health-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+
+  .detail-health-label { font-size: 0.68rem; color: var(--text-muted); font-weight: 500; }
+
+  .detail-body { padding: 16px 20px 20px; }
+
+  .detail-section { margin-bottom: 18px; }
+
+  .detail-section-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .detail-summary {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text);
+  }
+
+  .chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .chip {
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .chip.need { background: #e8f5e9; border-color: #b7e4c7; color: var(--primary); }
+  .chip.warning { background: #fff3e0; border-color: #ffe0b2; color: #e65100; }
+
+  .tip-list { list-style: none; }
+  .tip-list li {
+    padding: 6px 0;
+    font-size: 0.88rem;
+    color: var(--text);
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+    line-height: 1.5;
+  }
+  .tip-list li::before { content: "•"; color: var(--primary); font-weight: 700; flex-shrink: 0; }
+
+  .watering-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .watering-stat {
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+
+  .watering-stat-value { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+  .watering-stat-label { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+
+  .detail-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .detail-actions .btn-water {
+    flex: 2;
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 11px;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    min-width: 100px;
+  }
+  .detail-actions .btn-water:hover { background: var(--primary-light); }
+
+  .detail-actions .btn-reanalyze {
+    flex: 1;
+    background: var(--surface);
+    color: var(--primary);
+    border: 1.5px solid var(--border);
+    padding: 11px;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    min-width: 90px;
+  }
+  .detail-actions .btn-reanalyze:hover { background: var(--bg); border-color: var(--primary); }
+
+  .detail-actions .btn-remove {
+    background: none;
+    color: #ccc;
+    border: 1.5px solid #eee;
+    padding: 11px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .detail-actions .btn-remove:hover { color: var(--red); border-color: #fcc; background: #fff5f5; }
+
+  .analyzed-at {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 12px;
+  }
+
+  /* ── Loading ── */
+  .loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(4px);
+    z-index: 500;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+  }
+
+  .loading-overlay.hidden { display: none; }
+
+  .loading-spinner {
+    width: 52px;
+    height: 52px;
+    border: 4px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text {
+    font-size: 1rem;
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .loading-sub {
+    font-size: 0.83rem;
+    color: var(--text-muted);
+  }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    bottom: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1b4332;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    z-index: 600;
+    animation: toastIn 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .toast.error { background: var(--red); }
+  .toast.hidden { display: none; }
+
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateX(-50%) translateY(12px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 600px) {
+    main { padding: 16px 14px; }
+    .plants-grid { grid-template-columns: 1fr; }
+    .watering-grid { grid-template-columns: repeat(2, 1fr); }
+    .detail-actions { flex-direction: column; }
+    .detail-actions .btn-water,
+    .detail-actions .btn-reanalyze { flex: none; width: 100%; }
+    .detail-actions .btn-remove { width: 100%; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-brand">
+    <span>🌿</span> Plant Care
+  </div>
+  <nav class="tabs">
+    <button class="tab active" data-tab="plants" onclick="setView('plants')">My Plants</button>
+    <button class="tab" data-tab="schedule" onclick="setView('schedule')">Schedule</button>
+  </nav>
+</header>
+
+<main>
+  <div id="plants-view"></div>
+  <div id="schedule-view" style="display:none"></div>
+</main>
+
+<button class="fab" onclick="openAddModal()" title="Add a plant">+</button>
+
+<!-- Add Plant Modal -->
+<div class="modal-overlay hidden" id="add-modal-overlay" onclick="closeAddModal(event)">
+  <div class="modal" id="add-modal">
+    <div class="modal-header">
+      <div class="modal-title">Add a plant</div>
+      <button class="modal-close" onclick="closeAddModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="add-form" onsubmit="handleAddSubmit(event)">
+        <div class="form-group">
+          <label for="plant-name">Name your plant</label>
+          <input type="text" id="plant-name" placeholder="e.g. Bedroom Monstera" maxlength="60" required>
+        </div>
+        <div class="form-group">
+          <label>Photo</label>
+          <div id="upload-zone" class="upload-zone"
+               onclick="document.getElementById('file-input').click()"
+               ondragover="handleDragOver(event)"
+               ondragleave="handleDragLeave(event)"
+               ondrop="handleDrop(event)">
+            <div class="upload-icon">📷</div>
+            <strong>Drop a photo here</strong>
+            <div style="margin-top:4px;font-size:0.82rem">or click to browse</div>
+          </div>
+          <div id="upload-preview" class="upload-preview" style="display:none">
+            <img id="preview-img" src="" alt="" style="display:none">
+            <div id="heic-placeholder" class="heic-placeholder" style="display:none">
+              <span>📷</span>
+              <span>Photo ready</span>
+              <small>Will be converted automatically</small>
+            </div>
+            <div class="upload-preview-overlay">
+              <button type="button" class="btn-change-photo" onclick="document.getElementById('file-input').click()">Change photo</button>
+            </div>
+          </div>
+          <input type="file" id="file-input" accept="image/*" style="display:none" onchange="handleFileChange(event)">
+        </div>
+        <button type="submit" class="form-submit" id="submit-btn" disabled>
+          <span id="submit-icon">🌱</span>
+          <span id="submit-text">Add Plant</span>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay hidden" id="detail-modal-overlay" onclick="closeDetailModal(event)">
+  <div class="modal" id="detail-modal" style="max-width:520px"></div>
+</div>
+
+<!-- Hidden file input for updating an existing plant's photo -->
+<input type="file" id="update-file-input" accept="image/*" style="display:none" onchange="handleUpdateFileChange(event)">
+
+<!-- Loading Overlay -->
+<div class="loading-overlay hidden" id="loading">
+  <div class="loading-spinner"></div>
+  <div class="loading-text" id="loading-text">Analyzing your plant…</div>
+  <div class="loading-sub" id="loading-sub">Claude is examining your photo</div>
+</div>
+
+<!-- Toast -->
+<div class="toast hidden" id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────────
+let plants = [];
+let currentView = 'plants';
+let selectedFile = null;
+let selectedImageData = null;
+let toastTimer = null;
+
+// ── Init ───────────────────────────────────────────────────────────────────────
+async function init() {
+  try {
+    plants = await apiFetch('/api/plants');
+    render();
+  } catch (e) {
+    showToast('Failed to load plants', true);
+  }
+}
+
+// ── View ───────────────────────────────────────────────────────────────────────
+function setView(view) {
+  currentView = view;
+  document.getElementById('plants-view').style.display = view === 'plants' ? '' : 'none';
+  document.getElementById('schedule-view').style.display = view === 'schedule' ? '' : 'none';
+  document.querySelectorAll('.tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.tab === view);
+  });
+  render();
+}
+
+function render() {
+  if (currentView === 'plants') renderPlants();
+  else renderSchedule();
+}
+
+// ── Plants View ────────────────────────────────────────────────────────────────
+function renderPlants() {
+  const el = document.getElementById('plants-view');
+  if (plants.length === 0) {
+    el.innerHTML = `
+      <div class="empty-state">
+        <div class="icon">🌱</div>
+        <h2>No plants yet</h2>
+        <p>Add your first plant to get started with AI-powered care tracking.</p>
+        <button class="btn-primary" onclick="openAddModal()">+ Add a plant</button>
+      </div>`;
+    return;
+  }
+  el.innerHTML = `<div class="plants-grid">${plants.map(plantCardHTML).join('')}</div>`;
+}
+
+function plantCardHTML(plant) {
+  const a = plant.analysis || {};
+  const score = a.healthScore ?? null;
+  const hColor = healthColor(score);
+  const status = wateringStatus(plant);
+  const imgSrc = plant.imageDataUrl || '';
+
+  return `
+    <div class="plant-card" onclick="openDetail('${plant.id}')">
+      <div class="plant-photo-wrapper">
+        <img class="plant-photo" src="${imgSrc}" alt="${esc(plant.name)}"
+             onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div class="plant-photo-placeholder" style="display:none">🌿</div>
+        ${score !== null ? `<div class="health-badge" style="background:${hColor}">${score}</div>` : ''}
+      </div>
+      <div class="plant-info">
+        <div class="plant-name">${esc(plant.name)}</div>
+        ${a.plantType ? `<div class="plant-species">${esc(a.plantType)}</div>` : ''}
+        <div class="watering-pill" style="background:${status.bg};color:${status.color};border:1px solid ${status.border}">
+          ${status.icon} ${status.label}
+        </div>
+        ${plant.lastWatered ? `<div class="last-watered-text">Last watered: ${fmtDate(plant.lastWatered)}</div>` : ''}
+      </div>
+      <div class="plant-actions" onclick="event.stopPropagation()">
+        <button class="btn btn-water" onclick="handleWater('${plant.id}')">💧 Water</button>
+        <button class="btn btn-analyze" onclick="handleAnalyze('${plant.id}')">🔍 Analyze</button>
+        <button class="btn btn-delete" onclick="handleDelete('${plant.id}')" title="Remove plant">✕</button>
+      </div>
+    </div>`;
+}
+
+// ── Calendar state ─────────────────────────────────────────────────────────────
+function dateToStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+const _today = new Date(); _today.setHours(0,0,0,0);
+const todayStr = dateToStr(_today);
+let calYear = _today.getFullYear();
+let calMonth = _today.getMonth();
+let calSelectedDay = todayStr;
+
+// ── Schedule / Calendar View ───────────────────────────────────────────────────
+function buildWateringMap() {
+  const map = {};
+  for (const plant of plants) {
+    if (plant.nextWatering) {
+      if (!map[plant.nextWatering]) map[plant.nextWatering] = [];
+      map[plant.nextWatering].push({ plant, type: 'upcoming' });
+    }
+    for (const d of (plant.wateringHistory || [])) {
+      // Don't double-count if nextWatering == a history entry
+      const alreadyUpcoming = map[d] && map[d].find(e => e.plant.id === plant.id && e.type === 'upcoming');
+      if (!alreadyUpcoming) {
+        if (!map[d]) map[d] = [];
+        if (!map[d].find(e => e.plant.id === plant.id && e.type === 'past'))
+          map[d].push({ plant, type: 'past' });
+      }
+    }
+  }
+  return map;
+}
+
+function renderSchedule() {
+  const el = document.getElementById('schedule-view');
+  if (plants.length === 0) {
+    el.innerHTML = `<div class="schedule-empty">Add some plants to see your watering calendar.</div>`;
+    return;
+  }
+
+  const wmap = buildWateringMap();
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const DOWS   = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  const firstDay = new Date(calYear, calMonth, 1);
+  const lastDate = new Date(calYear, calMonth + 1, 0).getDate();
+  const startDow = (firstDay.getDay() + 6) % 7; // 0=Mon
+
+  // Build cells array (pad to full weeks)
+  const cells = [];
+  for (let i = 0; i < startDow; i++) {
+    cells.push({ date: new Date(calYear, calMonth, i - startDow + 1), other: true });
+  }
+  for (let d = 1; d <= lastDate; d++) {
+    cells.push({ date: new Date(calYear, calMonth, d), other: false });
+  }
+  let nd = 1;
+  while (cells.length % 7) cells.push({ date: new Date(calYear, calMonth + 1, nd++), other: true });
+
+  const cellsHTML = cells.map(({ date, other }) => {
+    const ds = dateToStr(date);
+    const entries = wmap[ds] || [];
+    const upcoming = entries.filter(e => e.type === 'upcoming');
+    const past     = entries.filter(e => e.type === 'past');
+    const isOverdue = upcoming.length > 0 && date < _today;
+
+    let cls = 'cal-day';
+    if (other)            cls += ' other-month';
+    if (ds === todayStr)  cls += ' is-today';
+    if (ds === calSelectedDay) cls += ' is-selected';
+    if (isOverdue)        cls += ' has-overdue';
+
+    const MAX = 5;
+    const all = [...upcoming, ...past];
+    const visible = all.slice(0, MAX);
+    const overflow = all.length - MAX;
+
+    const dotsHTML = visible.map(({ plant, type }) =>
+      `<div class="cal-dot ${type === 'past' ? 'past' : ''}" title="${esc(plant.name)}"
+            style="${type === 'upcoming' ? `border-color:${healthColor(plant.analysis?.healthScore)}` : ''}">
+        <img src="${plant.imageDataUrl || ''}" alt=""
+             onerror="this.style.display='none';this.parentNode.style.background='${healthColor(plant.analysis?.healthScore)}'">
+      </div>`
+    ).join('') + (overflow > 0 ? `<div class="cal-overflow">+${overflow}</div>` : '');
+
+    return `<div class="${cls}" onclick="selectCalDay('${ds}')">
+      <div class="cal-day-num">${date.getDate()}</div>
+      <div class="cal-dots">${dotsHTML}</div>
+    </div>`;
+  }).join('');
+
+  // Selected day panel
+  const selEntries = wmap[calSelectedDay] || [];
+  const selDate = new Date(calSelectedDay + 'T00:00:00');
+  const selLabel = selDate.toLocaleDateString('en-GB', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  const selDiff = daysDiff(calSelectedDay);
+  const isPast = selDiff < 0;
+  const isToday2 = selDiff === 0;
+
+  let panelItems = '';
+  if (selEntries.length === 0) {
+    panelItems = `<div class="cal-selected-empty">No waterings on this day</div>`;
+  } else {
+    panelItems = selEntries.map(({ plant, type }) => {
+      const a = plant.analysis || {};
+      const hColor = healthColor(a.healthScore);
+      const isUpcoming = type === 'upcoming';
+      const watered = type === 'past';
+      return `<div class="schedule-item" style="${watered ? 'opacity:0.65' : ''}" onclick="openDetail('${plant.id}')">
+        <img class="schedule-thumb" src="${plant.imageDataUrl || ''}" alt="${esc(plant.name)}"
+             onerror="this.style.background='${hColor}';this.src='data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw=='">
+        <div class="schedule-info">
+          <div class="schedule-name">${esc(plant.name)}</div>
+          ${a.plantType ? `<div class="schedule-species">${esc(a.plantType)}</div>` : ''}
+          <div class="schedule-label" style="color:${watered ? 'var(--text-muted)' : isUpcoming && isPast ? 'var(--red)' : 'var(--primary)'}">
+            ${watered ? '✓ Watered' : isUpcoming && isPast ? '⚠ Overdue' : '💧 Water this day'}
+          </div>
+        </div>
+        ${isUpcoming ? `<button class="schedule-water-btn" onclick="event.stopPropagation();handleWater('${plant.id}')">Water now</button>` : ''}
+      </div>`;
+    }).join('');
+  }
+
+  const selIcon = isToday2 ? '💧' : isPast ? '📋' : '📅';
+
+  el.innerHTML = `
+    <div class="calendar-wrap">
+      <div class="calendar-header">
+        <button class="calendar-nav" onclick="changeCalMonth(-1)">‹</button>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="calendar-title">${MONTHS[calMonth]} ${calYear}</span>
+          <button class="calendar-today-btn" onclick="goCalToday()">Today</button>
+        </div>
+        <button class="calendar-nav" onclick="changeCalMonth(1)">›</button>
+      </div>
+      <div class="calendar-grid">
+        ${DOWS.map(d => `<div class="cal-dow">${d}</div>`).join('')}
+        ${cellsHTML}
+      </div>
+    </div>
+    <div class="cal-selected-panel">
+      <div class="cal-selected-title">${selIcon} ${selLabel}</div>
+      ${panelItems}
+    </div>`;
+}
+
+function selectCalDay(ds) {
+  calSelectedDay = ds;
+  renderSchedule();
+}
+
+function changeCalMonth(delta) {
+  calMonth += delta;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  if (calMonth < 0)  { calMonth = 11; calYear--; }
+  renderSchedule();
+}
+
+function goCalToday() {
+  calYear = _today.getFullYear();
+  calMonth = _today.getMonth();
+  calSelectedDay = todayStr;
+  renderSchedule();
+}
+
+// ── Detail Modal ───────────────────────────────────────────────────────────────
+function openDetail(plantId) {
+  const plant = plants.find(p => p.id === plantId);
+  if (!plant) return;
+  renderDetailModal(plant);
+  document.getElementById('detail-modal-overlay').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDetailModal(e) {
+  if (e && e.target !== document.getElementById('detail-modal-overlay')) return;
+  document.getElementById('detail-modal-overlay').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+function renderDetailModal(plant) {
+  const a = plant.analysis || {};
+  const score = a.healthScore ?? null;
+  const hColor = healthColor(score);
+  const status = wateringStatus(plant);
+  const imgSrc = plant.imageDataUrl || '';
+  const freq = a.waterFrequencyDays;
+  const analyzedAt = a.analyzedAt ? new Date(a.analyzedAt).toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'}) : null;
+
+  const warnings = (a.warnings || []).filter(w => w && w.trim());
+  const needs = (a.needs || []).filter(n => n && n.trim());
+  const tips = (a.tips || []).filter(t => t && t.trim());
+
+  document.getElementById('detail-modal').innerHTML = `
+    <button class="modal-close" style="position:absolute;top:14px;right:14px;z-index:1;background:rgba(255,255,255,0.9);border-radius:50%;width:32px;height:32px" onclick="document.getElementById('detail-modal-overlay').classList.add('hidden');document.body.style.overflow=''">×</button>
+    <div style="position:relative">
+      <img class="detail-hero" src="${imgSrc}" alt="${esc(plant.name)}"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div class="detail-hero-placeholder" style="display:none">🌿</div>
+      <button class="update-photo-btn" onclick="triggerPhotoUpdate('${plant.id}')">📷 Update photo</button>
+    </div>
+    <div class="detail-header">
+      <div style="flex:1;min-width:0">
+        <div class="detail-name-wrapper" id="detail-name-wrapper">
+          <span class="detail-name">${esc(plant.name)}</span>
+          <button class="edit-name-btn" onclick="startNameEdit('${plant.id}')" title="Edit name">✏️</button>
+        </div>
+        ${a.plantType ? `<div class="detail-species">${esc(a.plantType)}</div>` : ''}
+      </div>
+      ${score !== null ? `
+        <div class="detail-health">
+          <div class="detail-health-circle" style="background:${hColor}">${score}</div>
+          <div class="detail-health-label">Health</div>
+        </div>` : ''}
+    </div>
+    <div class="detail-body">
+      ${a.healthSummary ? `
+        <div class="detail-section">
+          <div class="detail-section-title">Current condition</div>
+          <div class="detail-summary">${esc(a.healthSummary)}</div>
+        </div>` : ''}
+
+      ${warnings.length ? `
+        <div class="detail-section">
+          <div class="detail-section-title" style="color:var(--red)">⚠ Warnings</div>
+          <div class="chip-list">${warnings.map(w => `<span class="chip warning">${esc(w)}</span>`).join('')}</div>
+        </div>` : ''}
+
+      ${needs.length ? `
+        <div class="detail-section">
+          <div class="detail-section-title">What it needs</div>
+          <div class="chip-list">${needs.map(n => `<span class="chip need">${esc(n)}</span>`).join('')}</div>
+        </div>` : ''}
+
+      ${tips.length ? `
+        <div class="detail-section">
+          <div class="detail-section-title">Care tips</div>
+          <ul class="tip-list">${tips.map(t => `<li>${esc(t)}</li>`).join('')}</ul>
+        </div>` : ''}
+
+      <div class="detail-section">
+        <div class="detail-section-title">Watering</div>
+        <div class="watering-grid">
+          ${freq ? `<div class="watering-stat"><div class="watering-stat-value">${freq}d</div><div class="watering-stat-label">Frequency</div></div>` : ''}
+          <div class="watering-stat">
+            <div class="watering-stat-value">${plant.lastWatered ? fmtDate(plant.lastWatered) : '—'}</div>
+            <div class="watering-stat-label">Last watered</div>
+          </div>
+          <div class="watering-stat">
+            <div class="watering-stat-value" style="color:${status.color}">${status.label}</div>
+            <div class="watering-stat-label">Next watering</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="detail-actions">
+        <button class="btn-water" onclick="handleWater('${plant.id}');document.getElementById('detail-modal-overlay').classList.add('hidden');document.body.style.overflow=''">💧 Water now</button>
+        <button class="btn-reanalyze" onclick="handleAnalyze('${plant.id}')">🔍 Re-analyze</button>
+        <button class="btn-remove" onclick="handleDelete('${plant.id}')">Remove</button>
+      </div>
+
+      ${analyzedAt ? `<div class="analyzed-at">Last analyzed ${analyzedAt}</div>` : ''}
+    </div>`;
+}
+
+// ── Add Modal ──────────────────────────────────────────────────────────────────
+function openAddModal() {
+  document.getElementById('add-modal-overlay').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('plant-name').focus();
+}
+
+function closeAddModal(e) {
+  if (e && e.target !== document.getElementById('add-modal-overlay')) return;
+  document.getElementById('add-modal-overlay').classList.add('hidden');
+  document.body.style.overflow = '';
+  resetAddForm();
+}
+
+function resetAddForm() {
+  document.getElementById('add-form').reset();
+  selectedFile = null;
+  selectedImageData = null;
+  document.getElementById('upload-zone').style.display = '';
+  document.getElementById('upload-preview').style.display = 'none';
+  document.getElementById('preview-img').style.display = 'none';
+  document.getElementById('preview-img').src = '';
+  document.getElementById('heic-placeholder').style.display = 'none';
+  document.getElementById('submit-btn').disabled = true;
+}
+
+// ── Edit name ──────────────────────────────────────────────────────────────────
+function startNameEdit(plantId) {
+  const plant = plants.find(p => p.id === plantId);
+  if (!plant) return;
+  const wrapper = document.getElementById('detail-name-wrapper');
+  wrapper.innerHTML = `
+    <input class="detail-name-input" id="name-edit-input" value="${esc(plant.name)}" maxlength="60"
+           onkeydown="if(event.key==='Enter'){event.preventDefault();doSaveName('${plantId}');}if(event.key==='Escape')cancelNameEdit('${plantId}');">
+    <button class="save-name-btn" onclick="doSaveName('${plantId}')" title="Save">✓</button>
+    <button class="cancel-name-btn" onclick="cancelNameEdit('${plantId}')" title="Cancel">✕</button>`;
+  const input = document.getElementById('name-edit-input');
+  input.focus();
+  input.select();
+}
+
+function cancelNameEdit(plantId) {
+  const plant = plants.find(p => p.id === plantId);
+  if (!plant) return;
+  const wrapper = document.getElementById('detail-name-wrapper');
+  if (wrapper) wrapper.innerHTML = `
+    <span class="detail-name">${esc(plant.name)}</span>
+    <button class="edit-name-btn" onclick="startNameEdit('${plantId}')" title="Edit name">✏️</button>`;
+}
+
+async function doSaveName(plantId) {
+  const input = document.getElementById('name-edit-input');
+  if (!input || input.disabled) return;
+  const newName = input.value.trim();
+  if (!newName) { cancelNameEdit(plantId); return; }
+  const plant = plants.find(p => p.id === plantId);
+  if (plant && newName === plant.name) { cancelNameEdit(plantId); return; }
+  input.disabled = true;
+  try {
+    const updated = await apiFetch(`/api/plants/${plantId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newName }),
+    });
+    plants = plants.map(p => p.id === plantId ? updated : p);
+    render();
+    renderDetailModal(updated);
+    showToast('Name updated!');
+  } catch (err) {
+    showToast(err.message || 'Failed to update name', true);
+    if (input) input.disabled = false;
+  }
+}
+
+// ── Update photo ───────────────────────────────────────────────────────────────
+let updatingPlantId = null;
+
+function triggerPhotoUpdate(plantId) {
+  updatingPlantId = plantId;
+  const input = document.getElementById('update-file-input');
+  input.value = '';
+  input.click();
+}
+
+function handleUpdateFileChange(e) {
+  const file = e.target.files?.[0];
+  if (!file || !updatingPlantId) return;
+  prepareImage(file, (dataUrl) => uploadUpdatedPhoto(dataUrl));
+}
+
+async function uploadUpdatedPhoto(imageData) {
+  const plantId = updatingPlantId;
+  updatingPlantId = null;
+  showLoading('Updating photo & re-analyzing…', 'Claude is examining the new photo');
+  try {
+    const updated = await apiFetch(`/api/plants/${plantId}/photo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageData }),
+    });
+    plants = plants.map(p => p.id === plantId ? updated : p);
+    render();
+    showToast('Photo updated and re-analyzed!');
+    const overlay = document.getElementById('detail-modal-overlay');
+    if (!overlay.classList.contains('hidden')) renderDetailModal(updated);
+  } catch (err) {
+    showToast(err.message || 'Failed to update photo', true);
+  } finally {
+    hideLoading();
+  }
+}
+
+async function handleAddSubmit(e) {
+  e.preventDefault();
+  if (!selectedImageData) { showToast('Please add a photo first', true); return; }
+  const name = document.getElementById('plant-name').value.trim() || 'My Plant';
+
+  showLoading('Analyzing your plant…', 'Claude is examining the photo');
+  setAddSubmitState(true);
+
+  try {
+    const plant = await apiFetch('/api/plants', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, imageData: selectedImageData }),
+    });
+    plants.push(plant);
+    render();
+    closeAddModal();
+    showToast(`${plant.name} added successfully!`);
+  } catch (err) {
+    showToast(err.message || 'Failed to add plant', true);
+  } finally {
+    hideLoading();
+    setAddSubmitState(false);
+  }
+}
+
+function setAddSubmitState(loading) {
+  const btn = document.getElementById('submit-btn');
+  const icon = document.getElementById('submit-icon');
+  const text = document.getElementById('submit-text');
+  btn.disabled = loading;
+  icon.textContent = loading ? '' : '🌱';
+  text.textContent = loading ? 'Analyzing…' : 'Add Plant';
+}
+
+// ── File handling ──────────────────────────────────────────────────────────────
+function handleFileChange(e) {
+  const file = e.target.files?.[0];
+  if (file) setPreview(file);
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.add('drag-over');
+}
+
+function handleDragLeave() {
+  document.getElementById('upload-zone').classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag-over');
+  const file = e.dataTransfer?.files?.[0];
+  if (file && file.type.startsWith('image/')) setPreview(file);
+}
+
+function prepareImage(file, onReady) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const rawDataUrl = ev.target.result;
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1920;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else        { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      onReady(canvas.toDataURL('image/jpeg', 0.92), true);
+    };
+    img.onerror = () => {
+      const isHeic = file.type === 'image/heic' || file.type === 'image/heif'
+                  || file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
+      if (isHeic) onReady(rawDataUrl, false);
+      else showToast('Could not read this image. Try a JPEG or PNG.', true);
+    };
+    img.src = rawDataUrl;
+  };
+  reader.readAsDataURL(file);
+}
+
+function setPreview(file) {
+  selectedFile = file;
+  prepareImage(file, (dataUrl, canDisplay) => {
+    selectedImageData = dataUrl;
+    const previewImg = document.getElementById('preview-img');
+    const placeholder = document.getElementById('heic-placeholder');
+    if (canDisplay) {
+      previewImg.src = dataUrl;
+      previewImg.style.display = '';
+      placeholder.style.display = 'none';
+    } else {
+      previewImg.style.display = 'none';
+      placeholder.style.display = 'flex';
+    }
+    document.getElementById('upload-zone').style.display = 'none';
+    document.getElementById('upload-preview').style.display = '';
+    document.getElementById('submit-btn').disabled = false;
+  });
+}
+
+// ── Plant actions ──────────────────────────────────────────────────────────────
+async function handleWater(plantId) {
+  try {
+    const updated = await apiFetch(`/api/plants/${plantId}/water`, { method: 'PUT' });
+    plants = plants.map(p => p.id === plantId ? updated : p);
+    render();
+    showToast('Watered! Next watering scheduled.');
+    const overlay = document.getElementById('detail-modal-overlay');
+    if (!overlay.classList.contains('hidden')) renderDetailModal(updated);
+  } catch (err) {
+    showToast(err.message || 'Failed to record watering', true);
+  }
+}
+
+async function handleAnalyze(plantId) {
+  const plant = plants.find(p => p.id === plantId);
+  showLoading(`Re-analyzing ${plant?.name || 'plant'}…`, 'Claude is examining the photo');
+  try {
+    const updated = await apiFetch(`/api/plants/${plantId}/analyze`, { method: 'POST' });
+    plants = plants.map(p => p.id === plantId ? updated : p);
+    render();
+    showToast('Analysis updated!');
+    const overlay = document.getElementById('detail-modal-overlay');
+    if (!overlay.classList.contains('hidden')) renderDetailModal(updated);
+  } catch (err) {
+    showToast(err.message || 'Analysis failed', true);
+  } finally {
+    hideLoading();
+  }
+}
+
+async function handleDelete(plantId) {
+  const plant = plants.find(p => p.id === plantId);
+  if (!confirm(`Remove "${plant?.name || 'this plant'}"? This cannot be undone.`)) return;
+  try {
+    await apiFetch(`/api/plants/${plantId}`, { method: 'DELETE' });
+    plants = plants.filter(p => p.id !== plantId);
+    document.getElementById('detail-modal-overlay').classList.add('hidden');
+    document.body.style.overflow = '';
+    render();
+    showToast('Plant removed.');
+  } catch (err) {
+    showToast(err.message || 'Failed to remove plant', true);
+  }
+}
+
+// ── API ────────────────────────────────────────────────────────────────────────
+async function apiFetch(url, opts = {}) {
+  const r = await fetch(url, opts);
+  const data = await r.json().catch(() => ({ error: r.statusText }));
+  if (!r.ok) throw new Error(data.error || `Request failed (${r.status})`);
+  return data;
+}
+
+// ── Loading ────────────────────────────────────────────────────────────────────
+function showLoading(text = 'Loading…', sub = '') {
+  document.getElementById('loading-text').textContent = text;
+  document.getElementById('loading-sub').textContent = sub;
+  document.getElementById('loading').classList.remove('hidden');
+}
+
+function hideLoading() {
+  document.getElementById('loading').classList.add('hidden');
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────────
+function showToast(msg, isError = false) {
+  clearTimeout(toastTimer);
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast${isError ? ' error' : ''}`;
+  toastTimer = setTimeout(() => el.classList.add('hidden'), 3200);
+}
+
+// ── Utilities ──────────────────────────────────────────────────────────────────
+function daysDiff(dateStr) {
+  if (!dateStr) return null;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const target = new Date(dateStr + 'T00:00:00');
+  return Math.round((target - today) / 86400000);
+}
+
+function healthColor(score) {
+  if (score === null || score === undefined) return '#aaa';
+  if (score >= 7) return '#52b788';
+  if (score >= 4) return '#f4a261';
+  return '#e63946';
+}
+
+function wateringStatus(plant) {
+  const days = plant.nextWatering ? daysDiff(plant.nextWatering) : null;
+  if (days === null) return { label: 'No schedule', color: '#aaa', bg: '#f5f5f5', border: '#e0e0e0', icon: '💧' };
+  if (days < 0)  return { label: `${Math.abs(days)}d overdue`, color: '#c62828', bg: '#ffebee', border: '#ffcdd2', icon: '🚨' };
+  if (days === 0) return { label: 'Water today!', color: '#e65100', bg: '#fff3e0', border: '#ffe0b2', icon: '💧' };
+  if (days === 1) return { label: 'Tomorrow', color: '#2e7d32', bg: '#e8f5e9', border: '#c8e6c9', icon: '💧' };
+  return { label: `In ${days} days`, color: '#2e7d32', bg: '#e8f5e9', border: '#c8e6c9', icon: '💧' };
+}
+
+function fmtDate(isoDate) {
+  if (!isoDate) return '—';
+  return new Date(isoDate + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+}
+
+function esc(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── Keyboard ───────────────────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.getElementById('detail-modal-overlay').classList.add('hidden');
+    document.getElementById('add-modal-overlay').classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+});
+
+// ── Start ──────────────────────────────────────────────────────────────────────
+init();
+</script>
+</body>
+</html>
