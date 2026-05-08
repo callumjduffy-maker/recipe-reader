@@ -75,6 +75,7 @@ def init_db():
     cur.execute("""
         CREATE TABLE IF NOT EXISTS plants (
             id               TEXT PRIMARY KEY,
+            user_id          TEXT NOT NULL DEFAULT '',
             name             TEXT NOT NULL,
             image_data       TEXT DEFAULT '',
             image_type       TEXT DEFAULT 'image/jpeg',
@@ -86,6 +87,7 @@ def init_db():
             created_at       TIMESTAMPTZ DEFAULT NOW()
         )
     """)
+    cur.execute("ALTER TABLE plants ADD COLUMN IF NOT EXISTS user_id TEXT NOT NULL DEFAULT ''")
     conn.commit()
     conn.close()
     print("  Database ready.")
@@ -108,17 +110,18 @@ def _row_to_plant(row):
 
 # ── Storage API ────────────────────────────────────────────────────────────────
 
-def plants_load():
+def plants_load(user_id=""):
     if USE_DB:
         conn = _db_conn()
         cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
-        cur.execute("SELECT * FROM plants ORDER BY created_at ASC")
+        cur.execute("SELECT * FROM plants WHERE user_id = %s ORDER BY created_at ASC", (user_id,))
         rows = [dict(r) for r in cur.fetchall()]
         conn.close()
         return [_row_to_plant(r) for r in rows]
     if DATA_FILE.exists():
         try:
-            return json.loads(DATA_FILE.read_text(encoding="utf-8"))
+            all_plants = json.loads(DATA_FILE.read_text(encoding="utf-8"))
+            return [p for p in all_plants if p.get("userId", "") == user_id]
         except Exception:
             return []
     return []
@@ -155,31 +158,31 @@ def plant_get_image(plant_id):
         return None, None
 
 
-def plant_insert(plant_id, name, b64, media_type, today, analysis, next_watering):
+def plant_insert(plant_id, user_id, name, b64, media_type, today, analysis, next_watering):
     if USE_DB:
         conn = _db_conn()
         cur = conn.cursor()
         cur.execute("""
             INSERT INTO plants
-              (id, name, image_data, image_type, added, analysis,
+              (id, user_id, name, image_data, image_type, added, analysis,
                last_watered, next_watering, watering_history)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
-        """, (plant_id, name, b64, media_type, today,
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        """, (plant_id, user_id, name, b64, media_type, today,
               json.dumps(analysis), today, next_watering, json.dumps([today])))
         conn.commit()
         conn.close()
         return plant_get(plant_id)
     plant = {
-        "id": plant_id, "name": name,
+        "id": plant_id, "userId": user_id, "name": name,
         "imageDataUrl": f"data:{media_type};base64,{b64}",
         "added": today,
         "analysis": {**analysis, "analyzedAt": datetime.now().isoformat()},
         "lastWatered": today, "nextWatering": next_watering,
         "wateringHistory": [today],
     }
-    plants = plants_load()
-    plants.append(plant)
-    DATA_FILE.write_text(json.dumps(plants, indent=2, ensure_ascii=False), encoding="utf-8")
+    all_plants = json.loads(DATA_FILE.read_text(encoding="utf-8")) if DATA_FILE.exists() else []
+    all_plants.append(plant)
+    DATA_FILE.write_text(json.dumps(all_plants, indent=2, ensure_ascii=False), encoding="utf-8")
     return plant
 
 
@@ -426,12 +429,16 @@ class PlantHandler(http.server.BaseHTTPRequestHandler):
         self._cors()
         self.end_headers()
 
+    def _get_user(self):
+        qs = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        return qs.get("user", [""])[0][:80]
+
     def do_GET(self):
         path = urllib.parse.urlparse(self.path).path.rstrip("/") or "/"
         if path in ("/", "/index.html"):
             self._serve_file("plant-care.html", "text/html; charset=utf-8")
         elif path == "/api/plants":
-            self._json_response(200, plants_load())
+            self._json_response(200, plants_load(self._get_user()))
         elif path == "/manifest.json":
             self._serve_manifest()
         elif path == "/icon.png":
@@ -502,7 +509,7 @@ class PlantHandler(http.server.BaseHTTPRequestHandler):
         today = date.today().isoformat()
         freq = int(analysis.get("waterFrequencyDays", 7))
         analysis["analyzedAt"] = datetime.now().isoformat()
-        plant = plant_insert(str(uuid.uuid4()), name, b64, media_type,
+        plant = plant_insert(str(uuid.uuid4()), self._get_user(), name, b64, media_type,
                              today, analysis, compute_next_watering(today, freq))
         self._json_response(201, plant)
 
