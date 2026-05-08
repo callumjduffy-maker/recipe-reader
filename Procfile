@@ -1,1 +1,1 @@
-web: python3 recipe-server.py
+web: bash start.sh
